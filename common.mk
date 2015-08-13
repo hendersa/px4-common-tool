@@ -149,7 +149,8 @@ LDFLAGS += -e ${ENTRY_POINT}
 ASFLAGS += $(NK_ASFLAGS)
 
 # Object files
-OBJFILES = $(ASMFILES:%.S=%.o) $(CFILES:%.c=%.o) $(CXXFILES:%.cxx=%.o) $(OFILES)
+# AWH - Added cpp rule for PX4 compatibility
+OBJFILES = $(ASMFILES:%.S=%.o) $(CFILES:%.c=%.o) $(CXXFILES:%.cxx=%.o) $(CPPFILES:%.cpp=%.o) $(OFILES)
 
 # Define standard crt files if are building against a C library that has them
 ifeq (${CONFIG_HAVE_CRT},y)
@@ -174,6 +175,8 @@ vpath %.a $(SEL4_LIBDIR)
 vpath %.c $(SOURCE_DIR)
 vpath %.cxx $(SOURCE_DIR)
 vpath %.S $(SOURCE_DIR)
+# AWH - PX4 compatiblity
+vpath %.cpp $(SOURCE_DIR)
 
 # Default is to build/install all targets
 default: $(PRIORITY_TARGETS) install-headers $(TARGETS)
@@ -237,6 +240,13 @@ endif
 	$(Q)$(call make-cxx-depend,$<,$@,$(patsubst %.o,%.d,$@))
 	$(Q)$(CXX) -x c++ $(CXXFLAGS) $(CPPFLAGS) -c $< -o $@
 
+# AWH - PX4 file naming compatibility
+%.o: %.cpp $(HFILES) | install-headers
+	@echo " [CPP] $@"
+	$(Q)mkdir -p $(dir $@)
+	$(Q)$(call make-cxx-depend,$<,$@,$(patsubst %.o,%.d,$@))
+	$(Q)$(CXX) -x c++ $(CXXFLAGS) $(CPPFLAGS) -c $< -o $@
+
 .PRECIOUS: %.c_pp
 %.c_pp: %.c $(HFILES) | install-headers
 	@echo " [CPP] $@"
@@ -285,8 +295,8 @@ $(TARGETS): $(LIBS:%=-l%)
 # linker. This is a hack and will need to be changed if we start depending on SOs.
 # (Default is .LIBPATTERNS = lib%.so lib%.a)
 .LIBPATTERNS = lib%.a
-
-DEPS = $(patsubst %.c,%.d,$(CFILES)) $(patsubst %.cxx,%.d,$(CXXFILES)) $(patsubst %.S,%.d,$(ASMFILES))
+# AWH - Added CPPFILES for PX4 compatiblity
+DEPS = $(patsubst %.c,%.d,$(CFILES)) $(patsubst %.cxx,%.d,$(CXXFILES)) $(patsubst %.cpp,%.d,$(CPPFILES)) $(patsubst %.S,%.d,$(ASMFILES))
 
 ifneq "$(MAKECMDGOALS)" "clean"
   -include ${DEPS}
